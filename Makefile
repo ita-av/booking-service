@@ -14,6 +14,10 @@ build: generate
 run: build
 	./bin/server
 
+# Run tests
+test:
+	go test -v ./...
+
 # Clean generated files and binaries
 clean:
 	rm -f bin/server
