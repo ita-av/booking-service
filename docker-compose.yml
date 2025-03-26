@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  booking-service:
+    build: .
+    container_name: barbershop-booking-service
+    ports:
+      - "50051:50051"
+    environment:
+      - SERVER_PORT=50051
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB=barbershop_bookings
+      - LOG_LEVEL=info
+    depends_on:
+      - mongo
+    networks:
+      - barbershop-network
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:6.0
+    container_name: barbershop-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - barbershop-network
+    restart: unless-stopped
+
+networks:
+  barbershop-network:
+    name: barbershop-network
+    driver: bridge
+
+volumes:
+  mongo_data:
