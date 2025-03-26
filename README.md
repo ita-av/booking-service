@@ -45,16 +45,6 @@ Configuration is managed through environment variables:
 docker-compose up --build
 ```
 
-### Local Development (without Docker)
-
-```bash
-# Install dependencies
-go mod download
-
-# Run the service
-go run cmd/main.go
-```
-
 ## gRPC Methods
 
 ### CreateBooking
