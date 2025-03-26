@@ -39,6 +39,37 @@ Configuration is managed through environment variables:
 - `MONGO_DB`: Database name
 - `LOG_LEVEL`: Logging verbosity (debug, info, warn, error)
 
+
+### Generate gRPC Code
+
+```bash
+make generate
+```
+
+### Build the Application
+
+```bash
+make build
+```
+
+### Run the Service
+
+```bash
+make run
+```
+
+### Run Tests
+
+```bash
+make test
+```
+
+### Clean Generated Files
+
+```bash
+make clean
+```
+
 ### Running with Docker Compose
 
 ```bash
