@@ -1,6 +1,6 @@
 # Booking Service
 
-Booking service for a barbershop/salon management system built with Go, gRPC, and MongoDB.
+Booking service for a barbershop management system built with Go, gRPC, and MongoDB.
 
 ## Features
 
