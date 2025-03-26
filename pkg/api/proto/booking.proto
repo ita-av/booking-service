@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+option go_package = "github.com/ita-av/booking-service/pkg/api/generated";
+
+package booking;
+
+service BookingService {
+  // Create a new booking
+  rpc CreateBooking(CreateBookingRequest) returns (Booking);
+  
+  // Get a specific booking by ID
+  rpc GetBooking(GetBookingRequest) returns (Booking);
+  
+  // Update an existing booking
+  rpc UpdateBooking(UpdateBookingRequest) returns (Booking);
+  
+  // Cancel a booking
+  rpc CancelBooking(CancelBookingRequest) returns (CancelBookingResponse);
+  
+  // Get all bookings for a user
+  rpc GetUserBookings(GetUserBookingsRequest) returns (BookingList);
+  
+  // Get all bookings for a barber
+  rpc GetBarberBookings(GetBarberBookingsRequest) returns (BookingList);
+  
+  // Get available time slots for a barber on a specific date
+  rpc GetAvailableTimeSlots(GetAvailableTimeSlotsRequest) returns (TimeSlotList);
+}
+
+// Booking status
+enum BookingStatus {
+  PENDING = 0;
+  CONFIRMED = 1;
+  CANCELLED = 2;
+  COMPLETED = 3;
+}
+
+// Service type
+enum ServiceType {
+  HAIRCUT = 0;
+  BEARD_TRIM = 1;
+  HAIR_WASH = 2;
+  FULL_SERVICE = 3;
+}
+
+// Time slot model
+message TimeSlot {
+  string start_time = 1;  // ISO format datetime string
+  string end_time = 2;    // ISO format datetime string
+}
+
+// Available time slots response
+message TimeSlotList {
+  repeated TimeSlot time_slots = 1;
+}
+
+// Booking model
+message Booking {
+  string id = 1;
+  string user_id = 2;
+  string barber_id = 3;
+  string start_time = 4;  // ISO format datetime string
+  string end_time = 5;    // ISO format datetime string
+  ServiceType service_type = 6;
+  BookingStatus status = 7;
+  string notes = 8;
+  string created_at = 9;  // ISO format datetime string
+  string updated_at = 10; // ISO format datetime string
+}
+
+// List of bookings
+message BookingList {
+  repeated Booking bookings = 1;
+}
+
+// Create booking request
+message CreateBookingRequest {
+  string user_id = 1;
+  string barber_id = 2;
+  string start_time = 3;  // ISO format datetime string
+  ServiceType service_type = 4;
+  string notes = 5;
+}
+
+// Get booking request
+message GetBookingRequest {
+  string id = 1;
+}
+
+// Update booking request
+message UpdateBookingRequest {
+  string id = 1;
+  string start_time = 2;  // ISO format datetime string
+  ServiceType service_type = 3;
+  string notes = 4;
+}
+
+// Cancel booking request
+message CancelBookingRequest {
+  string id = 1;
+}
+
+// Cancel booking response
+message CancelBookingResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Get user bookings request
+message GetUserBookingsRequest {
+  string user_id = 1;
+}
+
+// Get barber bookings request
+message GetBarberBookingsRequest {
+  string barber_id = 1;
+  string date = 2;  // ISO format date string (optional)
+}
+
+// Get available time slots request
+message GetAvailableTimeSlotsRequest {
+  string barber_id = 1;
+  string date = 2;  // ISO format date string
+}
