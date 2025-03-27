@@ -16,6 +16,8 @@ type BookingService struct {
 	repo repository.BookingRepository
 }
 
+var _ BookingServiceInterface = (*BookingService)(nil)
+
 // NewBookingService creates a new booking service
 func NewBookingService(repo repository.BookingRepository) *BookingService {
 	return &BookingService{

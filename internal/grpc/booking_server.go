@@ -18,11 +18,11 @@ import (
 // BookingServer implements the gRPC BookingService
 type BookingServer struct {
 	pb.UnimplementedBookingServiceServer
-	service *service.BookingService
+	service service.BookingServiceInterface
 }
 
 // NewBookingServer creates a new booking gRPC server
-func NewBookingServer(service *service.BookingService) *BookingServer {
+func NewBookingServer(service service.BookingServiceInterface) *BookingServer {
 	return &BookingServer{
 		service: service,
 	}
