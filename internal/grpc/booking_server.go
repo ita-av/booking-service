@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/ita-av/booking-service/internal/auth"
 	"github.com/ita-av/booking-service/internal/model"
 	"github.com/ita-av/booking-service/internal/service"
 	pb "github.com/ita-av/booking-service/pkg/api/proto"
@@ -29,7 +30,21 @@ func NewBookingServer(service *service.BookingService) *BookingServer {
 
 // CreateBooking creates a new booking
 func (s *BookingServer) CreateBooking(ctx context.Context, req *pb.CreateBookingRequest) (*pb.Booking, error) {
-	// Parse start time
+	// Get user ID from context
+	userID, err := auth.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated: %v", err)
+	}
+
+	// Authorization check:
+	// 1. Regular users can only create bookings for themselves
+	// 2. Barbers can create bookings for anyone
+	isBarber := auth.IsBarber(ctx)
+	if !isBarber && userID != req.UserId {
+		return nil, status.Errorf(codes.PermissionDenied, "regular users can only create bookings for themselves")
+	}
+
+	// Continue with booking creation...
 	startTime, err := time.Parse(time.RFC3339, req.StartTime)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid start time format: %v", err)
@@ -73,6 +88,28 @@ func (s *BookingServer) GetBooking(ctx context.Context, req *pb.GetBookingReques
 
 // UpdateBooking updates an existing booking
 func (s *BookingServer) UpdateBooking(ctx context.Context, req *pb.UpdateBookingRequest) (*pb.Booking, error) {
+
+	// Get authentication info
+	userID, err := auth.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
+
+	// Get the booking to check ownership
+	booking, err := s.service.GetBooking(ctx, req.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to retrieve booking: %v", err)
+	}
+	if booking == nil {
+		return nil, status.Errorf(codes.NotFound, "booking not found")
+	}
+
+	// Authorization check
+	isBarber := auth.IsBarber(ctx)
+	if !isBarber && booking.UserID != userID {
+		return nil, status.Errorf(codes.PermissionDenied, "you can only update your own bookings")
+	}
+
 	var startTime *time.Time
 	var serviceType *model.ServiceType
 
@@ -92,7 +129,7 @@ func (s *BookingServer) UpdateBooking(ctx context.Context, req *pb.UpdateBooking
 	}
 
 	// Update booking
-	booking, err := s.service.UpdateBooking(ctx, req.Id, startTime, serviceType, &req.Notes)
+	booking, err = s.service.UpdateBooking(ctx, req.Id, startTime, serviceType, &req.Notes)
 	if err != nil {
 		if errors.Is(err, errors.New("booking not found")) {
 			return nil, status.Errorf(codes.NotFound, "booking not found")
@@ -105,9 +142,30 @@ func (s *BookingServer) UpdateBooking(ctx context.Context, req *pb.UpdateBooking
 	return convertBookingToProto(booking), nil
 }
 
-// Cancel
 // CancelBooking cancels an existing booking
 func (s *BookingServer) CancelBooking(ctx context.Context, req *pb.CancelBookingRequest) (*pb.CancelBookingResponse, error) {
+	// Get authentication info
+	userID, err := auth.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
+
+	// Get the booking to check ownership
+	booking, err := s.service.GetBooking(ctx, req.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to retrieve booking: %v", err)
+	}
+	if booking == nil {
+		return nil, status.Errorf(codes.NotFound, "booking not found")
+	}
+
+	// Authorization check
+	isBarber := auth.IsBarber(ctx)
+	if !isBarber && booking.UserID != userID {
+		return nil, status.Errorf(codes.PermissionDenied, "you can only cancel your own bookings")
+	}
+
+	// Cancel booking
 	success, err := s.service.CancelBooking(ctx, req.Id)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to cancel booking")
@@ -129,6 +187,18 @@ func (s *BookingServer) CancelBooking(ctx context.Context, req *pb.CancelBooking
 
 // GetUserBookings retrieves all bookings for a user
 func (s *BookingServer) GetUserBookings(ctx context.Context, req *pb.GetUserBookingsRequest) (*pb.BookingList, error) {
+	// Get authentication info
+	userID, err := auth.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
+
+	// Authorization check
+	isBarber := auth.IsBarber(ctx)
+	if !isBarber && userID != req.UserId {
+		return nil, status.Errorf(codes.PermissionDenied, "regular users can only view their own bookings")
+	}
+
 	bookings, err := s.service.GetUserBookings(ctx, req.UserId)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user bookings")
@@ -148,6 +218,19 @@ func (s *BookingServer) GetUserBookings(ctx context.Context, req *pb.GetUserBook
 
 // GetBarberBookings retrieves all bookings for a barber
 func (s *BookingServer) GetBarberBookings(ctx context.Context, req *pb.GetBarberBookingsRequest) (*pb.BookingList, error) {
+	// Get authentication info
+	_, err := auth.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
+
+	// Authorization check:
+	// Only barbers can view barber bookings
+	isBarber := auth.IsBarber(ctx)
+	if !isBarber {
+		return nil, status.Errorf(codes.PermissionDenied, "only barbers can view barber schedules")
+	}
+
 	var date *time.Time
 
 	// Parse date if provided

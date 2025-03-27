@@ -17,6 +17,8 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/ita-av/booking-service/config"
+	"github.com/ita-av/booking-service/internal/auth"
+
 	grpcServer "github.com/ita-av/booking-service/internal/grpc"
 	"github.com/ita-av/booking-service/internal/repository"
 	"github.com/ita-av/booking-service/internal/service"
@@ -86,7 +88,9 @@ func main() {
 		log.Fatal().Err(err).Str("port", cfg.ServerPort).Msg("Failed to listen")
 	}
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(auth.AuthInterceptor),
+	)
 	pb.RegisterBookingServiceServer(s, bookingServer)
 
 	// Enable reflection for tools like grpcurl
